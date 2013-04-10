@@ -1,0 +1,115 @@
+use nes;
+use mmc3;
+
+options( bank: -1 );
+
+var vsync_flag:int;
+var ppu_ctrl1_bak:int;// = 0b10000000;
+var ppu_ctrl2_bak:int;// = 0b00011110;
+var ppu_scroll1:int;
+var ppu_scroll2:int;
+
+const GR_MAX = 8;
+var gr_idx:int;
+var gr_to_buf:int16[GR_MAX];
+var gr_from_buf:int*[GR_MAX];
+var gr_size_buf:int[GR_MAX];
+var gr_sprite_idx:int;
+var gr_sprite_buf:int[256] options (address:0x0700);
+
+var pad_a:int;
+var pad_b:int;
+var pad_select:int;
+var pad_start:int;
+var pad_up:int;
+var pad_down:int;
+var pad_left:int;
+var pad_right:int;
+
+var ppu_put_to:int16;
+var ppu_put_from:int* options (address:0x80);
+var ppu_put_size:int;
+var interrupt_i:int;
+
+var irq_counter:int;
+
+function wait_vsync():void
+{
+	while( gr_sprite_idx < 255 ){
+		gr_sprite_buf[gr_sprite_idx] = 0;
+		gr_sprite_idx += 1;
+	}
+	vsync_flag = 1;
+	while( vsync_flag ){}
+}
+
+function ppu_lock():void
+{
+	PPU_CTRL1 = 0b00000000;
+	PPU_CTRL2 = 0b00000000;
+}
+
+function ppu_unlock():void
+{
+	PPU_CTRL1 = 0b10000000;
+	wait_vsync();
+}
+
+function ppu_put( to:int16, from:int*, size:int ):void;
+
+function gr_add( to:int16, from:int*, size:int):void
+{
+	while( gr_idx >= GR_MAX ){
+		vsync_flag = 2;
+		while( vsync_flag ){}
+	}
+	gr_from_buf[gr_idx] = from;
+	gr_to_buf[gr_idx] = to;
+	gr_size_buf[gr_idx] = size;
+	gr_idx += 1;
+}
+
+function gr_pos( x:int, y:int ):int16;
+
+function gr_sprite( x:int, y:int, pat:int, mode:int ):void;
+
+function gr_sprite2x2( x:int, y:int, pat:int, mode:int ):void
+{
+	gr_sprite(x  ,y  ,pat  ,mode);
+	gr_sprite(x+8,y  ,pat+ 1,mode);
+	gr_sprite(x  ,y+8,pat+16,mode);
+	gr_sprite(x+8,y+8,pat+17,mode);
+}
+
+function pad_update():void
+{
+	PAD_CTRL = 1;
+	PAD_CTRL = 0;
+	pad_a = PAD_CTRL % 2;
+	pad_b = PAD_CTRL % 2;
+	pad_select = PAD_CTRL % 2;
+	pad_start = PAD_CTRL % 2;
+	pad_up = PAD_CTRL % 2;
+	pad_down = PAD_CTRL % 2;
+	pad_left = PAD_CTRL % 2;
+	pad_right = PAD_CTRL % 2;
+}
+
+function memset(p:int*, c:int, size:int):void;
+function memzero(p:int*, size:int):void;
+function memcpy(from:int*, to:int*, size:int):void;
+
+function wait(n:int):void
+{
+	while( n ){
+		var i:int = 55;
+		while( i ){
+			var j:int = 255;
+			while( j ){
+				j -= 1;
+			}
+			i -= i;
+		}
+		n -= 1;
+	}
+}
