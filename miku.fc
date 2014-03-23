@@ -2,12 +2,12 @@ options( bank_count: 4 );
 options( bank:-1 );
 
 use mmc3;
-use nes;
-use math;
-use util;
+use * from nes;
+use * from math;
+use * from util;
 
-use common;
-use enemy;
+use * from common;
+use en;
 
 include( "miku.asm" );
 
@@ -17,6 +17,11 @@ const SPR_MIKU = 0x80;
 const SPR_MIKU_BANG = 0x88;
 const SPR_NEGI = 0xa0;
 const SPR_EN_BUL = 0xe0;
+
+function interrupt():void options (symbol:'_interrupt');
+function interrupt_irq():void options (symbol:'_interrupt_irq');
+
+function en_bul_process():void;
 
 function my_process():void
 {
@@ -128,8 +133,8 @@ function main(): void
 {
 	ppu_lock();
 	
-	mmc3_init();
-	mmc3_set_cbank( 1, 4 );
+	mmc3.init();
+	mmc3.set_cbank( 1, 4 );
 	irq_counter = 100;
 	APU_INTERRUPT = 0x40; // disable APU IRQ
 	
@@ -154,7 +159,7 @@ function main(): void
 	
 	my_x = 128;
 	my_y = 180;
-	en_init();
+	en.init();
 	
 	ppu_unlock();
 	
@@ -179,7 +184,7 @@ function main(): void
 
 		en_bul_process();
 		my_process();
-		en_process();
+		en.process();
 		my_bul_process();
     
 		wait_vsync();

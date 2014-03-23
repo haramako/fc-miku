@@ -5,31 +5,31 @@ options( bank: -1 );
 //
 // See: http://wiki.nesdev.com/w/index.php/Nintendo_MMC3
 
-var MMC3_BANK_SELECT:int options( address: 0x8000 );
-var MMC3_BANK_DATA  :int options( address: 0x8001 );
-var MMC3_MIRROR     :int options( address: 0xA000 );
-var MMC3_RAM_PROTECT:int options( address: 0xA001 );
-var MMC3_IRQ_LATCH  :int options( address: 0xC000 );
-var MMC3_IRQ_RELOAD :int options( address: 0xC001 );
-var MMC3_IRQ_DISABLE:int options( address: 0xE000 );
-var MMC3_IRQ_ENABLE :int options( address: 0xE001 );
+var BANK_SELECT:int options( address: 0x8000 );
+var BANK_DATA  :int options( address: 0x8001 );
+var MIRROR     :int options( address: 0xA000 );
+var RAM_PROTECT:int options( address: 0xA001 );
+var IRQ_LATCH  :int options( address: 0xC000 );
+var IRQ_RELOAD :int options( address: 0xC001 );
+var IRQ_DISABLE:int options( address: 0xE000 );
+var IRQ_ENABLE :int options( address: 0xE001 );
 
 
 /**
  * 初期化する.
  */
-function mmc3_init():void
+function init():void
 {
-	mmc3_set_cbank( 0, 0 );
-	mmc3_set_cbank( 1, 2 );
-	mmc3_set_cbank( 2, 0 );
-	mmc3_set_cbank( 3, 1 );
-	mmc3_set_cbank( 4, 2 );
-	mmc3_set_cbank( 5, 3 );
-	mmc3_set_pbank( 0, 0 );
-	mmc3_set_pbank( 1, 1 );
-	MMC3_MIRROR = 0;
-	MMC3_IRQ_DISABLE = 0;
+	set_cbank( 0, 0 );
+	set_cbank( 1, 2 );
+	set_cbank( 2, 0 );
+	set_cbank( 3, 1 );
+	set_cbank( 4, 2 );
+	set_cbank( 5, 3 );
+	set_pbank( 0, 0 );
+	set_pbank( 1, 1 );
+	MIRROR = 0;
+	IRQ_DISABLE = 0;
 }
 
 /**
@@ -44,10 +44,10 @@ function mmc3_init():void
  *   5: 0x1C00-0x1FFF ( 1KB )
  * bank: 1KB bank
  */
-function mmc3_set_cbank( pos:int, bank:int ):void
+function set_cbank( pos:int, bank:int ):void
 {
-	MMC3_BANK_SELECT = pos;
-	MMC3_BANK_DATA = bank;
+	BANK_SELECT = pos;
+	BANK_DATA = bank;
 }
 
 /**
@@ -58,8 +58,8 @@ function mmc3_set_cbank( pos:int, bank:int ):void
  *   1: 0xA000-0xBFFF ( 8KB )
  * bank: 8KB bank
  */
-function mmc3_set_pbank( pos:int, bank:int ):void
+function set_pbank( pos:int, bank:int ):void
 {
-	MMC3_BANK_SELECT = pos+6;
-	MMC3_BANK_DATA = bank;
+	BANK_SELECT = pos+6;
+	BANK_DATA = bank;
 }

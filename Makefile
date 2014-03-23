@@ -1,6 +1,6 @@
 
 all:
-	../bin/fc -d -t nes miku.fc
+	fcc b -d -t nes -o miku.nes miku.fc 
 
 clean:
-	rm -rf a.*
+	rm -rf miku.nes miku.map
