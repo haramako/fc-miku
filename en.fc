@@ -1,7 +1,9 @@
 options ( bank: 1 );
 use * from math;
-use * from util;
 use * from common;
+use ppu;
+
+include("en.asm");
 
 public const MAX = 16;
 var type:int[MAX];
@@ -129,6 +131,8 @@ function check_hit(i:int):int
 	return 0;
 }
 
+function bul_process():void;
+
 /*********************************************
  * ダミー
  *********************************************/
@@ -198,13 +202,15 @@ function en_1_process(i:int):void
 	}
 
 	// 表示
-	gr_sprite2x2( x_[i]-8, y_[i]-8, SPR_ENEMY, pal );
+	put_sprite2x2( x_[i]-8, y_[i]-8, SPR_ENEMY, pal );
 
 }
 
 /*********************************************
  * ビリー・ヘリントン
  *********************************************/
+
+const SPR_BILLY = 0;
 
 const BILLY_NORMAL:int[] = [0x80, 0x81, 0x82, 0x83,
 							0x90, 0x91, 0x92, 0x93,
@@ -224,34 +230,30 @@ const BANG:int[] = [0x88, 0x89, 0x98, 0x99,
 
 function billy_new():int
 {
-	/*
 	var i = new();
 	if( i != 255 ){
-		var cy = (ppu_scroll2 / 8 + 4)%30;
+		var cy = (ppu.scroll2 / 8 + 4)%30;
 		var cx = rand() % 24 + 4;
 		
 		type[i] = 2;
-		x[i] = cx * 8;
-		p1[i] = 0;
-		p2[i] = cy; // スクロール上の位置
-		p4[i] = 0;
+		x_[i] = cx * 8;
+		p1_[i] = 0;
+		p2_[i] = cy; // スクロール上の位置
+		p4_[i] = 0;
 	}
 	return i;
-	*/
-	return 0;
 }
 
 function billy_process(i:int):void
 {
-	/*
 	// 画面上の位置を計算
-	var y = p2[i] * 8;
-	if( y > ppu_scroll2 ){
-		y = y - ppu_scroll2;
+	var y = p2_[i] * 8;
+	if( y > ppu.scroll2 ){
+		y = y - ppu.scroll2;
 	}else{
-		y = 240 + y - ppu_scroll2;
+		y = 240 + y - ppu.scroll2;
 	}
-	y_[i] = y0;
+	y_[i] = y;
 	
 	// 自機の弾との当たり判定
 	var p1 = p1_[i];
@@ -264,7 +266,7 @@ function billy_process(i:int):void
 	}
 
 	var p4 = p4_[i];
-	var cx = x[i]/8;
+	var cx = x_[i]/8;
 	var cy = p2_[i];
 	if( p1 == 0 ){
 		if( p4 % 4 == 0 ){
@@ -276,11 +278,11 @@ function billy_process(i:int):void
 				gr_print( cx-2,cy-1-p4, BILLY_NORMAL, 4, p4+1 );
 			}else{
 				gr_print( cx-2,cy-3, BILLY_NORMAL, 4, 4 );
-				p1[i] = 2;
-				p4[i] = 16;
+				p1_[i] = 2;
+				p4_[i] = 16;
 			}
 		}
-		p4[i] += 1;
+		p4_[i] += 1;
 	}elsif( p1 == 255 ){
 		// 死亡時
 		if( p4 % 4 == 0 ){
@@ -296,17 +298,13 @@ function billy_process(i:int):void
 				type[i] = 0;
 			}
 		}
-		p4[i] += 1;
+		p4_[i] += 1;
 	}
 	
-	if( outside( 120/*適当/, y ) ){
+	if( outside( 120/*適当*/, y ) ){
 		type[i] = 0;
 		return;
 	}
-
-	// 表示
-	// gr_sprite2x2( x[i]-8, y-8, SPR_BILLY, 0 );
-*/
 
 }
 
@@ -322,7 +320,7 @@ function gr_print( cx:int, cy:int, data:int8*, width:int, height:int ):void
 	var y:int;
 	var i = 0;
 	for( y, 0, height ){
-		gr_add( gr_pos( cx, cy+y), &data[i], width );
+		ppu.put( ppu.pos( cx, cy+y), &data[i], width, 0 );
 		i += width;
 	}
 }

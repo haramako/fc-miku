@@ -1,15 +1,14 @@
 options( bank_count: 4 );
+options( char_banks: 1 );
 options( bank:-1 );
 
-use mmc3;
+use pad;
+use ppu;
 use * from nes;
 use * from math;
-use * from util;
 
 use * from common;
 use en;
-
-include( "miku.asm" );
 
 include('miku.chr');
 
@@ -18,21 +17,16 @@ const SPR_MIKU_BANG = 0x88;
 const SPR_NEGI = 0xa0;
 const SPR_EN_BUL = 0xe0;
 
-function interrupt():void options (symbol:'_interrupt');
-function interrupt_irq():void options (symbol:'_interrupt_irq');
-
-function en_bul_process():void;
-
 function my_process():void
 {
 	var i:int;
 	// 自機の移動
 	if( my_stat == 0 ){
-		pad_update();
-		if( pad_up ){ my_y -= 2; }
-		if( pad_down ){ my_y += 2; }
-		if( pad_left ){ my_x -= 2; }
-		if( pad_right ){ my_x += 2; }
+		pad.update();
+		if( pad.cur & pad.UP ){ my_y -= 2; }
+		if( pad.cur & pad.DOWN ){ my_y += 2; }
+		if( pad.cur & pad.LEFT ){ my_x -= 2; }
+		if( pad.cur & pad.RIGHT ){ my_x += 2; }
 
 		if( my_x < 16 ){ my_x = 16; }
 		if( my_x > 240 ){ my_x = 240; }
@@ -57,7 +51,7 @@ function my_process():void
 
 		// 弾を打つ
 		if( my_wait == 0 ){
-			if( pad_a ){
+			if( pad.cur & pad.A ){
 				var n:int;
 				for( n, 0, MY_BUL_MAX ){
 					if( my_bul_type[n] == 0 ){
@@ -79,7 +73,7 @@ function my_process():void
 			if( my_muteki_count == 0 ){ my_muteki = 0; }
 		}
 
-		gr_sprite2x2( my_x-8, my_y-8, SPR_MIKU+anim*2, my_muteki_count % 2 );
+		put_sprite2x2( my_x-8, my_y-8, SPR_MIKU+anim*2, my_muteki_count % 2 );
 
 	}else{
 		if( my_wait ){
@@ -107,8 +101,8 @@ function my_bul_process():void
 				var cx = (my_bul_x[i]-4) / 8;
 				var cy = (my_bul_y[i]+16) / 8;
 				my_bul_y[i] -= 6;
-				gr_sprite( my_bul_x[i]-4, my_bul_y[i]-4, SPR_NEGI+anim, 0 );
-				gr_sprite( my_bul_x[i]-4, my_bul_y[i]+4, SPR_NEGI+anim+16, 0 );
+				ppu.sprite( my_bul_x[i]-4, my_bul_y[i]-4, SPR_NEGI+anim, 0 );
+				ppu.sprite( my_bul_x[i]-4, my_bul_y[i]+4, SPR_NEGI+anim+16, 0 );
 			}else{
 				my_bul_type[i] = 0;
 			}
@@ -117,63 +111,51 @@ function my_bul_process():void
 			if( my_bul_vx[i] >= 8 ){
 				my_bul_type[i] = 0;
 			}else{
-				gr_sprite( my_bul_x[i]-4, my_bul_y[i]-4, SPR_MIKU_BANG+(my_bul_vx[i]/2), 0 );
+				ppu.sprite( my_bul_x[i]-4, my_bul_y[i]-4, SPR_MIKU_BANG+(my_bul_vx[i]/2), 0 );
 			}
 			my_bul_vx[i] += 1;
 		case 3:
 			// 死亡時の爆発
 			my_bul_x[i] += (my_bul_vx[i]+giff16)/16;
 			my_bul_y[i] += (my_bul_vy[i]+giff16)/16;
-			gr_sprite( my_bul_x[i]-4, my_bul_y[i]-4, SPR_MIKU_BANG+(anim_count/2)%4, 0 );
+			ppu.sprite( my_bul_x[i]-4, my_bul_y[i]-4, SPR_MIKU_BANG+(anim_count/2)%4, 0 );
 		}
 	}
 }
 
 function main(): void
 {
-	ppu_lock();
+	ppu.lock();
 	
-	mmc3.init();
-	mmc3.set_cbank( 1, 4 );
-	irq_counter = 100;
-	APU_INTERRUPT = 0x40; // disable APU IRQ
-	
-	ppu_ctrl1_bak = 0b10001000;
-	ppu_ctrl2_bak = 0b00011110;
-	ppu_scroll1 = 0;
-	ppu_scroll2 = 0;
-	gr_idx = 0;
+	ppu.init();
+	ppu.ctrl1_bak = 0b10001000;
+	ppu.ctrl2_bak = 0b00011110;
+	ppu.scroll1 = 0;
+	ppu.scroll2 = 0;
 
 	// パレットの初期化
-	ppu_put( 0x3f00, PALLET, 32 );
+	ppu.put_in_lock( 0x3f00, PALLET, 32 );
 
 	// パレットテーブルの初期化
-	PPU_ADDR = 0x23;
-	PPU_ADDR = 0xc0;
-	var i:int;
-	for( i, 0, 64 ){ PPU_DATA = 0; }
-
-	ppu_put( gr_pos(18,18), "HOGE", 4 );
-
-	ppu_put( gr_pos(10,10), "FUGA", 4 );
+	ppu.fill_in_lock( 0x23c0, 64, 0 );
 	
 	my_x = 128;
 	my_y = 180;
 	en.init();
 	
-	ppu_unlock();
+	ppu.unlock();
 	
 	asm( "cli" );
 
 	while( 1 ){
 		var scroll = giff16/8;
 		if( scroll ){
-			ppu_scroll2 -= scroll;
-			if( ppu_scroll2 >= 240 ){ ppu_scroll2 -= 16; }
-			if( (ppu_scroll2 % 8) == 0 ){
-				var cy:int = ppu_scroll2 / 8;
-				gr_add( gr_pos( 0, cy ), "                                    ", 32);
-				gr_add( gr_pos( rand()/8, cy ), "w", 1);
+			ppu.scroll2 -= scroll;
+			if( ppu.scroll2 >= 240 ){ ppu.scroll2 -= 16; }
+			if( (ppu.scroll2 % 8) == 0 ){
+				var cy:int = ppu.scroll2 / 8;
+				ppu.put( ppu.pos( 0, cy ), "                                    ", 32, 0);
+				ppu.put( ppu.pos( rand()/8, cy ), "w", 1, 0);
 			}
 		}
 		
@@ -182,12 +164,12 @@ function main(): void
 		giff16 = GIFF_TABLE[anim_count%16];
 		giff = giff16/4;
 
-		en_bul_process();
+		en.bul_process();
 		my_process();
 		en.process();
 		my_bul_process();
     
-		wait_vsync();
+		ppu.wait_vsync();
 	}
   
 }

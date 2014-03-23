@@ -1,88 +1,3 @@
-;; function interrupt():void
-.proc _interrupt
-	lda _util_vsync_flag				; if( vsync_flag ){
-	beq @else
-
-	cmp #1						;   if( vsync_flag == 1 ){
-	bne @else2
-	lda #0						;     PPU_SPR_ADDR = 0;
-	lda _nes_PPU_SPR_ADDR
-	lda #7						;     SPRITE_DMA = 7;
-	sta _nes_SPRITE_DMA
-	lda #0						;     gr_sprite_idx = 0;
-	sta _util_gr_sprite_idx
-@else2:							;   }
-
-	lda #0						;   i = 0;
-	sta _util_interrupt_i
-@loop:					  
-	lda _util_interrupt_i			;   while( i < gr_idx ){
-	cmp _util_gr_idx
-	bpl @end
-	jsr ppu_put3				;     ppu_put3(interrupt_i)
-	inc _util_interrupt_i			;     i += 1;
-	jmp @loop					;   }
-@end:		
-	lda #0						;   vsync_flag = gr_idx = 0
-	sta _util_vsync_flag
-	sta _util_gr_idx
-@else:							; }
-	lda _util_ppu_scroll1			; PPU_SCROLL1 = ppu_scroll1;
-	sta _nes_PPU_SCROLL
-	lda _util_ppu_scroll2			; PPU_SCROLL2 = ppu_scroll2;
-	sta _nes_PPU_SCROLL
-	lda _util_ppu_ctrl1_bak			; PPU_CTRL1 = ppu_ctrl1_bak;
-	sta _nes_PPU_CTRL1
-	lda _util_ppu_ctrl2_bak			; PPU_CTRL2 = ppu_ctrl2_bak;
-	sta _nes_PPU_CTRL2
-
-	lda _util_irq_counter			; if( irq_counter ){
-	beq @end3
-	lda #0						;   MMC3_URQ_DISABLE = 0;
-	sta _mmc3_IRQ_DISABLE		
-	lda _util_irq_counter			;   MMC3_IRQ_LATCH = irq_counter;
-	sta _mmc3_IRQ_LATCH
-	sta _mmc3_IRQ_RELOAD		;   MMC3_IRQ_RELOAD = irq_counter;
-	sta _mmc3_IRQ_DISABLE		;	MMC3_IRQ_DISABLE = xx;
-	sta _mmc3_IRQ_ENABLE		;   MMC3_IRQ_ENABLE = xx;
-@end3:							; }
-
-	rts
-.endproc
-
-.proc ppu_put3
-	ldx _util_interrupt_i							; ppu_put_size = gr_size_buf[i]
-	lda _util_gr_size_buf,x
-	sta _util_ppu_put_size
-
-	txa										;   (x = i*2 )
-	asl a
-	tax
-
-	lda _util_gr_to_buf+1,x						; PPU_ADDR = gr_to_buf[i] * 2
-	sta _nes_PPU_ADDR
-	lda _util_gr_to_buf+0,x
-	sta _nes_PPU_ADDR
-		
-	lda _util_gr_from_buf+0,x						; gr_from_buf = ppu_put_from
-	sta _util_ppu_put_from+0
-	lda _util_gr_from_buf+1,x
-	sta _util_ppu_put_from+1
-	ldy #0
-@loop:
-    lda (_util_ppu_put_from),y
-    sta _nes_PPU_DATA
-    iny
-	cpy _util_ppu_put_size
-    bne @loop
-    rts
-.endproc
-
-.proc _interrupt_irq
-	sta _mmc3_IRQ_DISABLE
-	rts
-.endproc
-	
 ;; // 敵の弾の処理
 ;; function en_bul_process():void
 ;; {
@@ -106,7 +21,7 @@
 ;;   }
 ;; }
 ;; USING: X,Y
-.proc _miku_en_bul_process
+.proc _en_bul_process
     ldy #0						; i = 0
 @loop:							; while(...
 
@@ -159,7 +74,7 @@
     sta S+3,x
 	tya
 	pha
-    jsr _util_gr_sprite
+    jsr _ppu_sprite
 	pla
 	tay
     lda _common_my_muteki         ; if( my_muteki == 0 && my_x + 8 - en_bul_x[i] < 16 && my_y + 8 - en_bul_y[i] < 16 ){

@@ -1,3 +1,5 @@
+use ppu;
+
 var anim:int;
 var anim_count:int;
 var giff:int8;
@@ -32,3 +34,10 @@ function outside(x:int,y:int):int
 	return ( x < 8 || x > 240 || y < 8 || y > 240 );
 }
 
+function put_sprite2x2( x:int, y:int, pat:int, mode:int ):void
+{
+	ppu.sprite(x  ,y  ,pat   ,mode);
+	ppu.sprite(x+8,y  ,pat+ 1,mode);
+	ppu.sprite(x  ,y+8,pat+16,mode);
+	ppu.sprite(x+8,y+8,pat+17,mode);
+}
