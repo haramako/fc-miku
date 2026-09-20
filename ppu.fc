@@ -27,16 +27,16 @@ var gr_buf:[256]int;
 var gr_buf_idx:int;
 
 var put_to:int16;
-var put_from:*int options(address: 0x60);
+var put_from:*int options(address: 0x71); // asm が (sym),y で使うので ZP。$00-$70 は fc の領域 (FC_SZP は $30-$6F) なので $71-$7F に置く
 var put_size:int;
 var interrupt_i:int;
 
 // IRQ関連
 var irq_counter:int;
-var irq_setup:fn():void options(address: 0x62);
-var irq_next:uint16 options(address: 0x64);
+var irq_setup:fn():void;   // 以前は ZP の固定番地 ($62) だったが、$00-$7F は fc の領域なので BSS に
+var irq_next:uint16;
 
-var on_vsync:fn():void options(address: 0x78);
+var on_vsync:fn():void;
 var locked:int;
 
 var on_wait_vsync:fn():void;
